@@ -35,27 +35,23 @@ threads.retrieve = {
   }
 }
 
-// --- threads.update ---
-threads.update = {
-  params: [
-    { name: 'id', optional: false, description: 'Thread ID' },
-    { name: 'metadata', optional: false, description: 'JSON string for metadata' }
-  ],
-  func: async (args) => {
-    const metadata = JSON.parse(args.metadata)
-    const result = await openai.beta.threads.update(args.id, { metadata })
-    logCommand({ command: 'threads.update', args, result })
-    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
-  }
-}
-
 // --- threads.delete ---
 threads.delete = {
-  params: [{ name: 'id', optional: false, description: 'Thread ID' }],
+  params: [{ name: 'id', optional: true, description: 'Thread ID (if omitted, uses latest)' }],
   func: async (args) => {
-    await openai.beta.threads.delete(args.id)
-    logCommand({ command: 'threads.delete', args, result: 'deleted' })
-    console.log(`Thread ${args.id} deleted.`)
+    let threadId = args.id
+    if (!threadId) {
+      threadId = getLatestThreadId()
+      if (threadId) {
+        console.log(`[ai-cli] No --id specified. Using latest thread id: ${threadId}`)
+      } else {
+        console.error('[ai-cli] Error: No thread id specified and no recent thread found.')
+        process.exit(1)
+      }
+    }
+    await openai.beta.threads.delete(threadId)
+    logCommand({ command: 'threads.delete', args: { ...args, id: threadId }, result: 'deleted' })
+    console.log(`Thread ${threadId} deleted.`)
   }
 }
 

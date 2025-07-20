@@ -5,13 +5,13 @@ import { logCommand, getLatestVectorStoreId, getLatestFileId } from './logger.js
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 function resolveVectorStoreId(args) {
-  let id = args.vector_store_id
+  let id = args.id || args.vector_store_id // allow both --id and --vector_store_id
   if (!id) {
     id = getLatestVectorStoreId()
     if (id) {
-      console.error(`[ai-cli] No --vector_store_id specified. Using latest vector store id: ${id}`)
+      console.error(`[ai-cli] No --id/--vector_store_id specified. Using latest vector store id: ${id}`)
     } else {
-      console.error('[ai-cli] Error: No --vector_store_id specified and no recent vector store found.')
+      console.error('[ai-cli] Error: No --id/--vector_store_id specified and no recent vector store found.')
       process.exit(1)
     }
   }
@@ -49,33 +49,39 @@ vectorstores.create = {
   }
 }
 
-vectorstores.delete = {
-  params: [{ name: 'id', optional: false, description: 'Vector store ID' }],
+vectorstores.retrieve = {
+  params: [{ name: 'id', optional: true, description: 'Vector store ID (if omitted, uses latest)' }],
   func: async (args) => {
-    await openai.vectorStores.delete(args.id)
-    logCommand({ command: 'vectorstores.delete', args, result: 'deleted' })
-    console.log(`Vector store ${args.id} deleted.`)
+    const id = resolveVectorStoreId(args)
+    const result = await openai.vectorStores.retrieve(id)
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
-vectorstores.retrieve = {
-  params: [{ name: 'id', optional: false, description: 'Vector store ID' }],
+vectorstores.delete = {
+  params: [{ name: 'id', optional: true, description: 'Vector store ID (if omitted, uses latest)' }],
   func: async (args) => {
-    const result = await openai.vectorStores.retrieve(args.id)
-    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
+    const id = resolveVectorStoreId(args)
+    await openai.vectorStores.delete(id)
+    logCommand({ command: 'vectorstores.delete', args: { ...args, id }, result: 'deleted' })
+    console.log(`Vector store ${id} deleted.`)
   }
 }
 
 vectorstores.update = {
   params: [
-    { name: 'id', optional: false, description: 'Vector store ID' },
+    { name: 'id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'name', optional: true, description: 'New name for the vector store' },
     { name: 'expires_after', optional: true, description: 'Expiration policy object' }
   ],
   func: async (args) => {
-    const { id, ...rest } = args
-    const result = await openai.vectorStores.update(id, rest)
-    logCommand({ command: 'vectorstores.update', args, result })
+    const id = resolveVectorStoreId(args)
+    const { name, expires_after } = args
+    const updateFields = {}
+    if (name) updateFields.name = name
+    if (expires_after) updateFields.expires_after = expires_after
+    const result = await openai.vectorStores.update(id, updateFields)
+    logCommand({ command: 'vectorstores.update', args: { ...args, id }, result })
     console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
@@ -135,7 +141,6 @@ vectorstores.files.list = {
   ],
   func: async (args) => {
     const vector_store_id = resolveVectorStoreId(args)
-    // Remove vector_store_id from options
     const { vector_store_id: _, ...options } = args
     const result = await openai.vectorStores.files.list(vector_store_id, options)
     console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
@@ -149,11 +154,8 @@ vectorstores.files.delete = {
   ],
   func: async (args) => {
     const vector_store_id = resolveVectorStoreId(args)
-    const file_id = resolveFileId(args) // You must implement resolveFileId similarly to resolveVectorStoreId
-    await openai.vectorStores.files.delete(
-      file_id,
-      { vector_store_id } // This is the correct pattern per OpenAI docs!
-    )
+    const file_id = resolveFileId(args)
+    await openai.vectorStores.files.delete(file_id, { vector_store_id }) // <-- correct usage!
     logCommand({ command: 'vectorstores.files.delete', args: { ...args, vector_store_id, file_id }, result: 'deleted' })
     console.log(`File ${file_id} deleted from vector store ${vector_store_id}.`)
   }
@@ -219,8 +221,8 @@ vectorstores.filebatches.list = {
   ],
   func: async (args) => {
     const vector_store_id = resolveVectorStoreId(args)
-    const rest = { ...args, vector_store_id }
-    const result = await openai.vectorStores.fileBatches.list(rest)
+    const { vector_store_id: _, ...rest } = args
+    const result = await openai.vectorStores.fileBatches.list(vector_store_id, rest)
     console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
   }
 }
