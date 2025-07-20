@@ -7,12 +7,21 @@ const assistants = {}
 assistants.create = {
   params: [
     { name: 'name', optional: false, description: 'Assistant name' },
-    { name: 'instructions', optional: false, description: 'Instructions for assistant' },
+    {
+      name: 'instructions',
+      optional: true,
+      description: 'Instructions for assistant (default: "You are a helpful assistant.")'
+    },
     { name: 'tools', optional: true, description: 'Array of tool objects' },
     { name: 'model', optional: true, description: 'Model name (default: gpt-4o)' }
   ],
   func: async (args) => {
-    const result = await openai.beta.assistants.create(args)
+    const result = await openai.beta.assistants.create({
+      name: args.name,
+      instructions: args.instructions || 'You are a helpful assistant.',
+      tools: args.tools || [],
+      model: args.model || 'gpt-4.1'
+    })
     console.log(JSON.stringify(result, null, 2))
   }
 }
