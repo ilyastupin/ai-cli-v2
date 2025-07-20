@@ -1,4 +1,7 @@
 import { OpenAI } from 'openai'
+import { convertTimestampsToISO } from './helpers.js'
+import { logCommand } from './logger.js'
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 const assistants = {}
@@ -13,7 +16,7 @@ assistants.create = {
       description: 'Instructions for assistant (default: "You are a helpful assistant.")'
     },
     { name: 'tools', optional: true, description: 'Array of tool objects' },
-    { name: 'model', optional: true, description: 'Model name (default: gpt-4o)' }
+    { name: 'model', optional: true, description: 'Model name (default: gpt-4.1)' }
   ],
   func: async (args) => {
     const result = await openai.beta.assistants.create({
@@ -22,7 +25,8 @@ assistants.create = {
       tools: args.tools || [],
       model: args.model || 'gpt-4.1'
     })
-    console.log(JSON.stringify(result, null, 2))
+    logCommand({ command: 'assistants.create', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -31,7 +35,7 @@ assistants.retrieve = {
   params: [{ name: 'id', optional: false, description: 'Assistant ID' }],
   func: async (args) => {
     const result = await openai.beta.assistants.retrieve(args.id)
-    console.log(JSON.stringify(result, null, 2))
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -47,7 +51,8 @@ assistants.update = {
   func: async (args) => {
     const { id, ...updateFields } = args
     const result = await openai.beta.assistants.update(id, updateFields)
-    console.log(JSON.stringify(result, null, 2))
+    logCommand({ command: 'assistants.update', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -56,6 +61,7 @@ assistants.delete = {
   params: [{ name: 'id', optional: false, description: 'Assistant ID' }],
   func: async (args) => {
     await openai.beta.assistants.delete(args.id)
+    logCommand({ command: 'assistants.delete', args, result: 'deleted' })
     console.log(`Assistant ${args.id} deleted.`)
   }
 }
@@ -68,9 +74,12 @@ assistants.list = {
     { name: 'after', optional: true, description: 'Pagination cursor' }
   ],
   func: async (args) => {
-    const result = await openai.beta.assistants.list(args)
-    // Just print the array for clarity
-    console.log(JSON.stringify(result.data, null, 2))
+    const result = await openai.beta.assistants.list({
+      limit: args.limit || 20,
+      order: args.order || 'desc',
+      after: args.after
+    })
+    console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
   }
 }
 

@@ -2,6 +2,7 @@ import assistantsModule from './src/assistants.js'
 import vectorstoresModule from './src/vectorstores.js'
 import filesModule from './src/files.js'
 import threadsModule from './src/threads.js'
+import { getLogFilePath } from './src/logger.js'
 
 const commands = {
   ...assistantsModule,
@@ -31,23 +32,27 @@ function parseArgs(argv, params) {
   return out
 }
 
-function printHelp(commands, prefix = []) {
+function printHelp(commands, prefix = [], isTopLevel = true) {
   for (const category of Object.keys(commands)) {
     const catObj = commands[category]
     for (const cmd of Object.keys(catObj)) {
       const entry = catObj[cmd]
       if (entry && Array.isArray(entry.params) && typeof entry.func === 'function') {
         const params = entry.params.map((p) => (p.optional ? `[--${p.name}]` : `--${p.name}`)).join(' ')
-        // Prefix (if inside vectorstores files ...)
         const fullCmd = ['ai-cli', ...prefix, category, cmd].join(' ')
         console.log(`  ${fullCmd} ${params}`)
       } else if (entry && typeof entry === 'object') {
-        // Recurse into subcommands (e.g., files, filebatches)
-        printHelp({ [cmd]: entry }, [...prefix, category])
+        // Recurse into subcommands
+        printHelp({ [cmd]: entry }, [...prefix, category], false)
       }
     }
   }
+
+  if (isTopLevel) {
+    console.log(`\n📄 Log file: ${getLogFilePath()}`)
+  }
 }
+
 async function main() {
   const [, , category, cmd, ...argv] = process.argv
   if (!category || !cmd || argv.includes('--help')) {

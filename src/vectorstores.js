@@ -1,11 +1,13 @@
 import { OpenAI } from 'openai'
+import { convertTimestampsToISO } from './helpers.js'
+import { logCommand } from './logger.js'
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 const vectorstores = {}
 
 // --- Top-level vectorstores commands ---
 
-// --- CREATE ---
 vectorstores.create = {
   params: [
     { name: 'name', optional: true, description: 'Vector store name' },
@@ -14,14 +16,16 @@ vectorstores.create = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.create(args)
-    console.log(JSON.stringify(result, null, 2))
+    logCommand({ command: 'vectorstores.create', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
 vectorstores.delete = {
   params: [{ name: 'id', optional: false, description: 'Vector store ID' }],
   func: async (args) => {
-    await openai.vectorStores.delete(args.id) // <--- Pass the ID, not { vector_store_id: id }
+    await openai.vectorStores.delete(args.id)
+    logCommand({ command: 'vectorstores.delete', args, result: 'deleted' })
     console.log(`Vector store ${args.id} deleted.`)
   }
 }
@@ -29,8 +33,8 @@ vectorstores.delete = {
 vectorstores.retrieve = {
   params: [{ name: 'id', optional: false, description: 'Vector store ID' }],
   func: async (args) => {
-    const result = await openai.vectorStores.retrieve(args.id) // <--- Pass the ID
-    console.log(JSON.stringify(result, null, 2))
+    const result = await openai.vectorStores.retrieve(args.id)
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -42,11 +46,12 @@ vectorstores.update = {
   ],
   func: async (args) => {
     const { id, ...rest } = args
-    const result = await openai.vectorStores.update(id, rest) // <--- ID, then body
-    console.log(JSON.stringify(result, null, 2))
+    const result = await openai.vectorStores.update(id, rest)
+    logCommand({ command: 'vectorstores.update', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
-// --- LIST ---
+
 vectorstores.list = {
   params: [
     { name: 'limit', optional: true, description: 'Max items to return' },
@@ -55,11 +60,11 @@ vectorstores.list = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.list(args)
-    console.log(JSON.stringify(result.data, null, 2))
+    console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
   }
 }
 
-// --- vectorstores.files subcommands (lowercase) ---
+// --- vectorstores.files subcommands ---
 
 vectorstores.files = {}
 
@@ -70,7 +75,8 @@ vectorstores.files.create = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.files.create(args)
-    console.log(JSON.stringify(result, null, 2))
+    logCommand({ command: 'vectorstores.files.create', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -81,7 +87,7 @@ vectorstores.files.retrieve = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.files.retrieve(args)
-    console.log(JSON.stringify(result, null, 2))
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -94,7 +100,7 @@ vectorstores.files.list = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.files.list(args)
-    console.log(JSON.stringify(result.data, null, 2))
+    console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
   }
 }
 
@@ -105,11 +111,12 @@ vectorstores.files.delete = {
   ],
   func: async (args) => {
     await openai.vectorStores.files.delete(args)
+    logCommand({ command: 'vectorstores.files.delete', args, result: 'deleted' })
     console.log(`File ${args.file_id} deleted from vector store ${args.vector_store_id}.`)
   }
 }
 
-// --- vectorstores.filebatches subcommands (all lowercase) ---
+// --- vectorstores.filebatches subcommands ---
 
 vectorstores.filebatches = {}
 
@@ -120,7 +127,8 @@ vectorstores.filebatches.create = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.fileBatches.create(args)
-    console.log(JSON.stringify(result, null, 2))
+    logCommand({ command: 'vectorstores.filebatches.create', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -131,7 +139,8 @@ vectorstores.filebatches.createandpoll = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.fileBatches.createAndPoll(args)
-    console.log(JSON.stringify(result, null, 2))
+    logCommand({ command: 'vectorstores.filebatches.createandpoll', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -142,7 +151,8 @@ vectorstores.filebatches.uploadandpoll = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.fileBatches.uploadAndPoll(args)
-    console.log(JSON.stringify(result, null, 2))
+    logCommand({ command: 'vectorstores.filebatches.uploadandpoll', args, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -154,7 +164,7 @@ vectorstores.filebatches.list = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.fileBatches.list(args)
-    console.log(JSON.stringify(result.data, null, 2))
+    console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
   }
 }
 
@@ -165,7 +175,7 @@ vectorstores.filebatches.retrieve = {
   ],
   func: async (args) => {
     const result = await openai.vectorStores.fileBatches.retrieve(args)
-    console.log(JSON.stringify(result, null, 2))
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
@@ -176,6 +186,7 @@ vectorstores.filebatches.cancel = {
   ],
   func: async (args) => {
     await openai.vectorStores.fileBatches.cancel(args)
+    logCommand({ command: 'vectorstores.filebatches.cancel', args, result: 'cancelled' })
     console.log(`Batch ${args.batch_id} cancelled in vector store ${args.vector_store_id}.`)
   }
 }
