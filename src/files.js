@@ -1,3 +1,4 @@
+import https from 'https'
 import { OpenAI } from 'openai'
 import { convertTimestampsToISO } from './helpers.js'
 import { logCommand } from './logger.js'
@@ -52,13 +53,54 @@ files.delete = {
 
 // --- files.download ---
 files.download = {
-  params: [{ name: 'id', optional: false, description: 'File ID' }],
+  params: [
+    { name: 'id', optional: false, description: 'File ID' },
+    { name: 'output', optional: false, description: 'Output file name (path to save the file)' }
+  ],
   func: async (args) => {
-    console.log('Download is under construction.')
-    // Future example:
-    // const buffer = await openai.files.download(args.id)
-    // fs.writeFileSync('downloaded_filename.ext', buffer)
+    const apiKey = process.env.OPENAI_API_KEY
+    const url = `https://api.openai.com/v1/files/${args.id}/content`
+    const outFile = args.output
+
+    try {
+      await new Promise((resolve, reject) => {
+        const req = https.get(
+          url,
+          {
+            headers: { Authorization: `Bearer ${apiKey}` }
+          },
+          (res) => {
+            if (res.statusCode !== 200) {
+              // Collect error body
+              let data = ''
+              res.on('data', (chunk) => {
+                data += chunk
+              })
+              res.on('end', () => {
+                try {
+                  const errorJson = JSON.parse(data)
+                  reject(new Error(`Failed to download file: HTTP ${res.statusCode}\n${JSON.stringify(errorJson, null, 2)}`))
+                } catch {
+                  reject(new Error(`Failed to download file: HTTP ${res.statusCode}\n${data}`))
+                }
+              })
+              return
+            }
+            const fileStream = fs.createWriteStream(outFile)
+            res.pipe(fileStream)
+            fileStream.on('finish', () => {
+              fileStream.close(resolve)
+            })
+            fileStream.on('error', reject)
+          }
+        )
+        req.on('error', reject)
+      })
+      console.log(`[ai-cli] File ${args.id} downloaded and saved to ${outFile}`)
+    } catch (e) {
+      console.error(`[ai-cli] Download failed: ${e.message || e}`)
+      process.exit(1)
+    }
   }
 }
-
 export default { files }

@@ -121,3 +121,82 @@ export function getLatestAssistantId() {
     return undefined
   }
 }
+
+export function getLatestRunId(threadId) {
+  try {
+    if (!fs.existsSync(logFile)) return undefined
+    const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean)
+    let latest = undefined
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line)
+        // Only accept logs from runs.create or runs.createandpoll with a valid run id
+        if (
+          entry.command &&
+          (entry.command === 'threads.runs.create' || entry.command === 'threads.runs.createandpoll') &&
+          entry.result &&
+          typeof entry.result.id === 'string' &&
+          entry.args &&
+          // If threadId specified, require match. If not, accept any.
+          ((threadId && entry.args.thread_id === threadId) || !threadId)
+        ) {
+          latest = entry.result.id
+        }
+      } catch {}
+    }
+    return latest
+  } catch {
+    return undefined
+  }
+}
+
+export function getLatestVectorStoreId() {
+  try {
+    if (!fs.existsSync(logFile)) return undefined
+    const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean)
+    const deleted = new Set(getDeletedIdsFor('vectorstores'))
+    let latest = undefined
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line)
+        if (
+          entry.command === 'vectorstores.create' &&
+          entry.result &&
+          typeof entry.result.id === 'string' &&
+          !deleted.has(entry.result.id)
+        ) {
+          latest = entry.result.id
+        }
+      } catch {}
+    }
+    return latest
+  } catch {
+    return undefined
+  }
+}
+
+export function getLatestFileId() {
+  try {
+    if (!fs.existsSync(logFile)) return undefined
+    const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean)
+    // Optionally track deleted files (if you ever call files.delete)
+    const deleted = new Set(getDeletedIdsFor('files'))
+    let latest = undefined
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line)
+        if (
+          entry.command === 'files.create' &&
+          entry.result &&
+          typeof entry.result.id === 'string' &&
+          !deleted.has(entry.result.id)
+        ) {
+          latest = entry.result.id
+        }
+      } catch {}
+    }
+    return latest
+  } catch {
+    return undefined
+  }
+}

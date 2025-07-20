@@ -2,4 +2,29 @@ ai-cli assistants create --name <name>
 
 ai-cli threads create
 
-ai-cli threads messages create [--thread-id] --content "What’s the capital of France?"
+ai-cli threads messages create --content "What’s the capital of France?"
+ai-cli threads runs createandpoll
+ai-cli threads messages list --limit 1
+
+ai-cli threads messages create --content "Can you tell what the text is about that I attached?"
+ai-cli threads runs createandpoll
+ai-cli threads messages list --limit 1
+
+Never use such method! Hallucination!!!!!!
+
+ai-cli threads messages create --content "Can you tell what the text is about that I attached?" --attachments file-YFJwsiw3nFttkiCZ8Vw8Pg
+ai-cli threads runs createandpoll
+ai-cli threads messages list --limit 1
+
+Right way!!
+
+ai-cli vectorstores create
+
+ai-cli files create --file $(ai-pick)
+ai-cli vectorstores files create
+
+
+
+
+PS
+ai-cli threads runs createandpoll = ai-cli threads runs create + [ ai-cli threads runs retrieve ] until it is done

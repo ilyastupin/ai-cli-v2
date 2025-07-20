@@ -1,8 +1,36 @@
 import { OpenAI } from 'openai'
 import { convertTimestampsToISO } from './helpers.js'
-import { logCommand } from './logger.js'
+import { logCommand, getLatestVectorStoreId, getLatestFileId } from './logger.js'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+function resolveVectorStoreId(args) {
+  let id = args.vector_store_id
+  if (!id) {
+    id = getLatestVectorStoreId()
+    if (id) {
+      console.error(`[ai-cli] No --vector_store_id specified. Using latest vector store id: ${id}`)
+    } else {
+      console.error('[ai-cli] Error: No --vector_store_id specified and no recent vector store found.')
+      process.exit(1)
+    }
+  }
+  return id
+}
+
+function resolveFileId(args) {
+  let id = args.file_id
+  if (!id) {
+    id = getLatestFileId()
+    if (id) {
+      console.error(`[ai-cli] No --file_id specified. Using latest file id: ${id}`)
+    } else {
+      console.error('[ai-cli] Error: No --file_id specified and no recent file found.')
+      process.exit(1)
+    }
+  }
+  return id
+}
 
 const vectorstores = {}
 
@@ -70,49 +98,64 @@ vectorstores.files = {}
 
 vectorstores.files.create = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
-    { name: 'file_id', optional: false, description: 'File ID to add to vector store' }
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
+    { name: 'file_id', optional: true, description: 'File ID to add to vector store (if omitted, uses latest)' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.files.create(args)
-    logCommand({ command: 'vectorstores.files.create', args, result })
+    const vector_store_id = resolveVectorStoreId(args)
+    const file_id = resolveFileId(args)
+    const result = await openai.vectorStores.files.create(vector_store_id, { file_id })
+    logCommand({ command: 'vectorstores.files.create', args: { ...args, vector_store_id, file_id }, result })
     console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
 vectorstores.files.retrieve = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
-    { name: 'file_id', optional: false, description: 'File ID in vector store' }
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
+    { name: 'file_id', optional: true, description: 'File ID in vector store (if omitted, uses latest)' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.files.retrieve(args)
+    const vector_store_id = resolveVectorStoreId(args)
+    const file_id = resolveFileId(args)
+    const result = await openai.vectorStores.files.retrieve({
+      vector_store_id,
+      file_id
+    })
     console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
 vectorstores.files.list = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'limit', optional: true, description: 'Max items to return' },
     { name: 'order', optional: true, description: 'asc or desc' },
     { name: 'filter', optional: true, description: 'Filter by status (in_progress, completed, etc.)' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.files.list(args)
+    const vector_store_id = resolveVectorStoreId(args)
+    // Remove vector_store_id from options
+    const { vector_store_id: _, ...options } = args
+    const result = await openai.vectorStores.files.list(vector_store_id, options)
     console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
   }
 }
 
 vectorstores.files.delete = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
-    { name: 'file_id', optional: false, description: 'File ID in vector store' }
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
+    { name: 'file_id', optional: true, description: 'File ID in vector store (if omitted, uses latest)' }
   ],
   func: async (args) => {
-    await openai.vectorStores.files.delete(args)
-    logCommand({ command: 'vectorstores.files.delete', args, result: 'deleted' })
-    console.log(`File ${args.file_id} deleted from vector store ${args.vector_store_id}.`)
+    const vector_store_id = resolveVectorStoreId(args)
+    const file_id = resolveFileId(args) // You must implement resolveFileId similarly to resolveVectorStoreId
+    await openai.vectorStores.files.delete(
+      file_id,
+      { vector_store_id } // This is the correct pattern per OpenAI docs!
+    )
+    logCommand({ command: 'vectorstores.files.delete', args: { ...args, vector_store_id, file_id }, result: 'deleted' })
+    console.log(`File ${file_id} deleted from vector store ${vector_store_id}.`)
   }
 }
 
@@ -122,72 +165,94 @@ vectorstores.filebatches = {}
 
 vectorstores.filebatches.create = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'file_ids', optional: false, description: 'Array of file IDs to batch add' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.fileBatches.create(args)
-    logCommand({ command: 'vectorstores.filebatches.create', args, result })
+    const vector_store_id = resolveVectorStoreId(args)
+    const result = await openai.vectorStores.fileBatches.create({
+      vector_store_id,
+      file_ids: args.file_ids
+    })
+    logCommand({ command: 'vectorstores.filebatches.create', args: { ...args, vector_store_id }, result })
     console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
 vectorstores.filebatches.createandpoll = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'file_ids', optional: false, description: 'Array of file IDs to batch add' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.fileBatches.createAndPoll(args)
-    logCommand({ command: 'vectorstores.filebatches.createandpoll', args, result })
+    const vector_store_id = resolveVectorStoreId(args)
+    const result = await openai.vectorStores.fileBatches.createAndPoll({
+      vector_store_id,
+      file_ids: args.file_ids
+    })
+    logCommand({ command: 'vectorstores.filebatches.createandpoll', args: { ...args, vector_store_id }, result })
     console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
 vectorstores.filebatches.uploadandpoll = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'files', optional: false, description: 'Array of local file streams or paths' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.fileBatches.uploadAndPoll(args)
-    logCommand({ command: 'vectorstores.filebatches.uploadandpoll', args, result })
+    const vector_store_id = resolveVectorStoreId(args)
+    const result = await openai.vectorStores.fileBatches.uploadAndPoll({
+      vector_store_id,
+      files: args.files
+    })
+    logCommand({ command: 'vectorstores.filebatches.uploadandpoll', args: { ...args, vector_store_id }, result })
     console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
 vectorstores.filebatches.list = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'limit', optional: true, description: 'Max items to return' },
     { name: 'order', optional: true, description: 'asc or desc' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.fileBatches.list(args)
+    const vector_store_id = resolveVectorStoreId(args)
+    const rest = { ...args, vector_store_id }
+    const result = await openai.vectorStores.fileBatches.list(rest)
     console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
   }
 }
 
 vectorstores.filebatches.retrieve = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'batch_id', optional: false, description: 'Batch ID to retrieve' }
   ],
   func: async (args) => {
-    const result = await openai.vectorStores.fileBatches.retrieve(args)
+    const vector_store_id = resolveVectorStoreId(args)
+    const result = await openai.vectorStores.fileBatches.retrieve({
+      vector_store_id,
+      batch_id: args.batch_id
+    })
     console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
   }
 }
 
 vectorstores.filebatches.cancel = {
   params: [
-    { name: 'vector_store_id', optional: false, description: 'Vector store ID' },
+    { name: 'vector_store_id', optional: true, description: 'Vector store ID (if omitted, uses latest)' },
     { name: 'batch_id', optional: false, description: 'Batch ID to cancel' }
   ],
   func: async (args) => {
-    await openai.vectorStores.fileBatches.cancel(args)
-    logCommand({ command: 'vectorstores.filebatches.cancel', args, result: 'cancelled' })
-    console.log(`Batch ${args.batch_id} cancelled in vector store ${args.vector_store_id}.`)
+    const vector_store_id = resolveVectorStoreId(args)
+    await openai.vectorStores.fileBatches.cancel({
+      vector_store_id,
+      batch_id: args.batch_id
+    })
+    logCommand({ command: 'vectorstores.filebatches.cancel', args: { ...args, vector_store_id }, result: 'cancelled' })
+    console.log(`Batch ${args.batch_id} cancelled in vector store ${vector_store_id}.`)
   }
 }
 

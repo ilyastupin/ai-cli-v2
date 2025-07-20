@@ -15,13 +15,21 @@ const commands = {
 function parseArgs(argv, params) {
   const out = {}
   let key = null
-  for (const arg of argv) {
-    if (arg.startsWith('--')) key = arg.slice(2)
-    else if (key) {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg.startsWith('--')) {
+      // If previous key was waiting for a value, set it as empty string
+      if (key !== null) out[key] = ''
+      key = arg.slice(2)
+      // If this is the last arg, assign empty string
+      if (i === argv.length - 1) out[key] = ''
+    } else if (key) {
       out[key] = arg
       key = null
     }
   }
+  // If last key is still waiting (e.g., "--vectorstoreids" is last), assign empty string
+  if (key !== null) out[key] = ''
   // Required param check
   if (params)
     for (const p of params) {
