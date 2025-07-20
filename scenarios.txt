@@ -1,0 +1,5 @@
+ai-cli assistants create --name <name>
+
+ai-cli threads create
+
+ai-cli threads messages create [--thread-id] --content "What’s the capital of France?"
