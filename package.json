@@ -1,0 +1,19 @@
+{
+  "name": "cli-v2",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "ai-cli": "./bin/ai-cli",
+    "ai-pick": "./bin/ai-pick"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "openai": "^5.10.1"
+  }
+}

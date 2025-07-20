@@ -1,0 +1,96 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Customer Web",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/customer-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"]
+    },
+    {
+      "name": "Launch CI-CD Customer Web",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/customer-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["serve-cicd"]
+    },
+    {
+      "name": "Launch Customer Web with server.js",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start-customer-web"]
+    },
+    {
+      "name": "Launch Outfitter Web",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/outfitter-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"]
+    },
+    {
+      "name": "Launch CI-CD Outfitter Web",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/outfitter-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["serve-cicd"]
+    },
+    {
+      "name": "Launch Rocket Web",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/rocket-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Test Services File",
+      "cwd": "${workspaceRoot}/packages/services",
+      "runtimeExecutable": "pa-config",
+      "runtimeArgs": ["-a=services", "-v=none", "-o=.env.js", "node", "-r", "ts-node/register"],
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "//1": "Only needed at top of tree",
+      "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**", "${workspaceFolder}/packages/**/*.js"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Test Rest Backend File",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "pa-config",
+      "runtimeArgs": ["-a=backend", "-v=none", "-o=.env.js", "node", "-r", "./preload-sentry", "-r", "ts-node/register"],
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**", "${workspaceFolder}/packages/**/*.js"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Server",
+      "outputCapture": "std",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start-debug"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Queue processor",
+      "outputCapture": "std",
+      "cwd": "${workspaceFolder}/queue-processor",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start-debug"],
+      "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**", "${workspaceFolder}/packages/**/*.js"],
+      "stopOnEntry": false
+    }
+  ]
+}

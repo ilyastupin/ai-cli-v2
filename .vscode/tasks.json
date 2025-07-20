@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"path": "backend",
+			"label": "backend - pnpm: start",
+			"detail": "start the backend",
+			"problemMatcher": [],
+			"script": "start"
+		},
+		{
+			"type": "npm",
+			"path": "customer-web",
+			"label": "customer-web - pnpm: dev",
+			"detail": "start the customer-web",
+			"problemMatcher": [],
+			"script": "dev"
+		},
+		{
+			"type": "npm",
+			"path": "packages/services",
+			"label": "packages/services - pnpm: migrate",
+			"detail": "migrate local database",
+			"problemMatcher": [],
+			"script": "migrate"
+		},
+		{
+			"type": "npm",
+			"path": "outfitter-web",
+			"label": "outfitter-web - pnpm: dev",
+			"detail": "start the outfitter-web",
+			"problemMatcher": [],
+			"script": "dev"
+		},
+	]
+}
