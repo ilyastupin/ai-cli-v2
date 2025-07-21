@@ -28,3 +28,10 @@ ai-cli vectorstores files create
 
 PS
 ai-cli threads runs createandpoll = ai-cli threads runs create + [ ai-cli threads runs retrieve ] until it is done
+
+=============================================
+
+
+
+
+

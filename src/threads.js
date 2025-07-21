@@ -9,13 +9,45 @@ function resolveThreadId(args) {
   if (!threadId) {
     threadId = getLatestThreadId()
     if (threadId) {
-      console.log(`[ai-cli] No --id specified. Using latest thread id: ${threadId}`)
+      console.error(`[ai-cli] No --id specified. Using latest thread id: ${threadId}`)
     } else {
       console.error('[ai-cli] Error: No thread id specified and no recent thread found.')
       process.exit(1)
     }
   }
   return threadId
+}
+
+function resolveAssistantId(args) {
+  let assistantId = args.assistant_id
+  if (!assistantId) {
+    assistantId = getLatestAssistantId()
+    if (assistantId) {
+      console.error(`[ai-cli] No --assistant_id specified. Using latest assistant id: ${assistantId}`)
+    } else {
+      console.error('[ai-cli] Error: No assistant id specified and no recent assistant found.')
+      process.exit(1)
+    }
+  }
+  return assistantId
+}
+
+function resolveRunId(args, threadId) {
+  let runId = args.run_id
+  if (!runId) {
+    runId = getLatestRunId(threadId)
+    if (runId) {
+      if (threadId) {
+        console.error(`[ai-cli] No --run_id specified. Using latest run id for thread ${threadId}: ${runId}`)
+      } else {
+        console.error(`[ai-cli] No --run_id specified. Using latest run id: ${runId}`)
+      }
+    } else {
+      console.error('[ai-cli] Error: No run id specified and no recent run found.')
+      process.exit(1)
+    }
+  }
+  return runId
 }
 
 const threads = {}
@@ -130,7 +162,7 @@ threads.messages.create = {
     if (!threadId) {
       threadId = getLatestThreadId()
       if (threadId) {
-        console.log(`[ai-cli] No --thread_id specified. Using latest thread id: ${threadId}`)
+        console.error(`[ai-cli] No --thread_id specified. Using latest thread id: ${threadId}`)
       } else {
         console.error('[ai-cli] Error: No thread id specified and no recent thread found.')
         process.exit(1)
@@ -176,7 +208,7 @@ threads.messages.list = {
     if (!threadId) {
       threadId = getLatestThreadId()
       if (threadId) {
-        console.log(`[ai-cli] No --thread_id specified. Using latest thread id: ${threadId}`)
+        console.error(`[ai-cli] No --thread_id specified. Using latest thread id: ${threadId}`)
       } else {
         console.error('[ai-cli] Error: No thread id specified and no recent thread found.')
         process.exit(1)
@@ -192,6 +224,88 @@ threads.messages.list = {
 // --- threads.runs ---
 threads.runs = {}
 
-// ... (runs methods unchanged; you can include as before) ...
+threads.runs.create = {
+  params: [
+    { name: 'thread_id', optional: true, description: 'Thread ID (if omitted, uses latest)' },
+    { name: 'assistant_id', optional: true, description: 'Assistant ID (if omitted, uses latest)' },
+    { name: 'instructions', optional: true, description: 'Override instructions' }
+  ],
+  func: async (args) => {
+    const threadId = resolveThreadId(args)
+    const assistantId = resolveAssistantId(args)
+    const opts = { assistant_id: assistantId }
+    if (args.instructions) opts.instructions = args.instructions
+    const result = await openai.beta.threads.runs.create(threadId, opts)
+    logCommand({ command: 'threads.runs.create', args: { ...args, thread_id: threadId, assistant_id: assistantId }, result })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
+  }
+}
+
+threads.runs.createandpoll = {
+  params: [
+    { name: 'thread_id', optional: true, description: 'Thread ID (if omitted, uses latest)' },
+    { name: 'assistant_id', optional: true, description: 'Assistant ID (if omitted, uses latest)' },
+    { name: 'instructions', optional: true, description: 'Override instructions' }
+  ],
+  func: async (args) => {
+    const threadId = resolveThreadId(args)
+    const assistantId = resolveAssistantId(args)
+    const opts = { assistant_id: assistantId }
+    if (args.instructions) opts.instructions = args.instructions
+    const result = await openai.beta.threads.runs.createAndPoll(threadId, opts)
+    logCommand({
+      command: 'threads.runs.createandpoll',
+      args: { ...args, thread_id: threadId, assistant_id: assistantId },
+      result
+    })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
+  }
+}
+
+threads.runs.retrieve = {
+  params: [
+    { name: 'thread_id', optional: true, description: 'Thread ID (if omitted, uses latest)' },
+    { name: 'run_id', optional: true, description: 'Run ID (if omitted, uses latest)' }
+  ],
+  func: async (args) => {
+    const threadId = resolveThreadId(args)
+    const runId = resolveRunId(args, threadId)
+    const result = await openai.beta.threads.runs.retrieve(runId, { thread_id: threadId })
+    console.log(JSON.stringify(convertTimestampsToISO(result), null, 2))
+  }
+}
+
+threads.runs.list = {
+  params: [
+    { name: 'thread_id', optional: true, description: 'Thread ID (if omitted, uses latest)' },
+    { name: 'limit', optional: true, description: 'Max runs to return' }
+  ],
+  func: async (args) => {
+    const threadId = resolveThreadId(args)
+    const result = await openai.beta.threads.runs.list(threadId, {
+      limit: args.limit
+    })
+    console.log(JSON.stringify(convertTimestampsToISO(result.data), null, 2))
+  }
+}
+
+threads.runs.stream = {
+  params: [
+    { name: 'thread_id', optional: true, description: 'Thread ID (if omitted, uses latest)' },
+    { name: 'assistant_id', optional: true, description: 'Assistant ID (if omitted, uses latest)' },
+    { name: 'instructions', optional: true, description: 'Override instructions' }
+  ],
+  func: async (args) => {
+    const threadId = resolveThreadId(args)
+    const assistantId = resolveAssistantId(args)
+    const opts = { assistant_id: assistantId }
+    if (args.instructions) opts.instructions = args.instructions
+    const stream = await openai.beta.threads.runs.stream(threadId, opts)
+    for await (const chunk of stream) {
+      process.stdout.write(typeof chunk === 'string' ? chunk : JSON.stringify(chunk))
+    }
+    process.stdout.write('\n')
+  }
+}
 
 export default { threads }

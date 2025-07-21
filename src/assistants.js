@@ -73,7 +73,7 @@ assistants.retrieve = {
     if (!assistantId) {
       assistantId = getLatestAssistantId()
       if (assistantId) {
-        console.log(`[ai-cli] No --id specified. Using latest assistant id: ${assistantId}`)
+        console.error(`[ai-cli] No --id specified. Using latest assistant id: ${assistantId}`)
       } else {
         console.error('[ai-cli] Error: No assistant id specified and no recent assistant found.')
         process.exit(1)
@@ -102,7 +102,7 @@ assistants.update = {
     if (!assistantId) {
       assistantId = getLatestAssistantId()
       if (assistantId) {
-        console.log(`[ai-cli] No --id specified. Using latest assistant id: ${assistantId}`)
+        console.error(`[ai-cli] No --id specified. Using latest assistant id: ${assistantId}`)
       } else {
         console.error('[ai-cli] Error: No assistant id specified and no recent assistant found.')
         process.exit(1)
@@ -162,7 +162,7 @@ assistants.delete = {
     if (!assistantId) {
       assistantId = getLatestAssistantId()
       if (assistantId) {
-        console.log(`[ai-cli] No --id specified. Using latest assistant id: ${assistantId}`)
+        console.error(`[ai-cli] No --id specified. Using latest assistant id: ${assistantId}`)
       } else {
         console.error('[ai-cli] Error: No assistant id specified and no recent assistant found.')
         process.exit(1)
